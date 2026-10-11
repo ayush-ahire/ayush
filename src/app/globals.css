@@ -1,26 +1,414 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/*
+ * Dark mode is class-driven, not OS-driven: the theme is chosen by the user
+ * and persisted, so `prefers-color-scheme` must not decide it. This redefines
+ * Tailwind's `dark:` variant to key off `.dark` on an ancestor.
+ */
+@custom-variant dark (&:where(.dark, .dark *));
 
+/*
+ * A `hover` that only applies to devices which actually hover.
+ *
+ * On iOS Safari a tap sets `:hover` and leaves it set until the visitor taps
+ * somewhere else, so a card tapped on a phone keeps its hovered background.
+ * Gating on the input capability fixes that without giving up hover on desktop.
+ */
+/*
+ * A note on `hover` in this project.
+ *
+ * There is deliberately no `hover-capable` variant here. Tailwind v4 already
+ * compiles every bare `hover:` utility inside `@media (hover: hover)`, so a
+ * hand-rolled equivalent only produces a stricter `:hover:hover` selector
+ * without changing behaviour. Earlier revisions of the cards did carry such a
+ * variant; it was removed once the emitted CSS was inspected.
+ *
+ * That built-in gating covers the iOS Safari case where a tap leaves `:hover`
+ * stuck on — but only for the *capability* check. Where a `whileHover` from
+ * Framer Motion drives the same effect, the gate has to live in JS; see
+ * `useIsDesktop` in `src/components/ui/motion.tsx`.
+ */
+
+/*
+ * Theme tokens.
+ *
+ * `@theme inline` registers the token *names* — which is what makes Tailwind
+ * emit the `bg-background` / `text-foreground` / `border-border` utilities —
+ * while each utility resolves to the underlying variable rather than a copied
+ * literal. That indirection is what lets `.dark` re-point the palette at
+ * runtime: a plain `@theme` would bake the light values into the utilities and
+ * the dark override could never reach them.
+ *
+ * The values themselves live in `:root` (light) and `.dark` below.
+ */
 @theme inline {
+  /* Surfaces, from deepest to most raised. */
   --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-overlay: var(--surface-overlay);
+
+  /* Text. */
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-muted: var(--muted);
+  --color-subtle: var(--subtle);
+
+  /* Hairlines and borders. */
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+
+  /* Single accent, used sparingly for emphasis and focus. */
+  --color-accent: var(--accent);
+  --color-accent-muted: var(--accent-muted);
+
+  /* Semantic. */
+  --color-success: var(--success);
+  --color-error: var(--error);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@theme {
+  --font-sans: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-mono), ui-monospace, monospace;
+}
+
+/*
+ * Light is the default so a first visit that never runs script still renders a
+ * complete page rather than an unstyled one.
+ */
+:root {
+  --background: #fafafa;
+  --surface: #f4f4f5;
+  --surface-raised: #e9e9ec;
+  --surface-overlay: #e4e4e7;
+
+  --foreground: #09090b;
+  --muted: #52525b;
+  --subtle: #71717a;
+
+  --border: #e4e4e7;
+  --border-strong: #d4d4d8;
+
+  --accent: #09090b;
+  --accent-muted: #3f3f46;
+
+  --success: #16a34a;
+  --error: #dc2626;
+}
+
+/*
+ * Dark surfaces step up in lightness with depth; borders are thin and
+ * low-contrast by intent.
+ */
+.dark {
+  --background: #08080a;
+  --surface: #0e0e11;
+  --surface-raised: #141418;
+  --surface-overlay: #1a1a1f;
+
+  --foreground: #fafafa;
+  --muted: #a1a1aa;
+  --subtle: #71717a;
+
+  --border: #1f1f25;
+  --border-strong: #2a2a32;
+
+  --accent: #fafafa;
+  --accent-muted: #d4d4d8;
+
+  --success: #4ade80;
+  --error: #f87171;
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  html {
+    scroll-behavior: smooth;
+    /* Offset anchored sections so the sticky navbar doesn't cover headings. */
+    scroll-padding-top: 5rem;
+    background-color: var(--color-background);
+    -webkit-text-size-adjust: 100%;
+  }
+
+  /*
+   * Next.js 16 no longer overrides `scroll-behavior` on the initial render
+   * unless this attribute is present. It only affects scroll restoration during
+   * client-side navigation, so it is belt-and-braces alongside the CSS above.
+   */
+  html[data-scroll-behavior="smooth"] {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+
+    /*
+     * A backstop against horizontal scroll, not a substitute for fixing the
+     * element that overflows — the real fixes are the break opportunities in
+     * Button and Contact. `clip` rather than `hidden` because `hidden` turns
+     * the body into a scroll container, which breaks `position: sticky` for
+     * the navbar and the hero's chatbot column in some engines.
+     */
+    overflow-x: clip;
+  }
+
+  /* Consistent, visible keyboard focus across every interactive element. */
+  :focus-visible {
+    outline: 2px solid var(--color-foreground);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  /* Reserve space for the scrollbar so opening the mobile menu doesn't shift
+   * the page horizontally. */
+  body {
+    scrollbar-gutter: stable;
+  }
+
+  ::selection {
+    background-color: var(--color-foreground);
+    color: var(--color-background);
+  }
+
+  /*
+   * Caret for `TextType`.
+   *
+   * The keyframes sit inside `@layer base` so they are emitted in cascade
+   * order alongside the rest of the layer, rather than being hoisted above it
+   * by Tailwind's `@keyframes` handling.
+   */
+  @keyframes text-type-caret {
+    0%, 70% {
+      opacity: 1;
+    }
+
+    71%, 100% {
+      opacity: 0;
+    }
+  }
+
+  .text-type-caret {
+    animation: text-type-caret 1s steps(2, start) infinite;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/*
+ * Respect the OS-level reduced-motion setting.
+ *
+ * Framer Motion animations are additionally disabled in code via
+ * `useReducedMotion`, so this is a CSS-level backstop for anything the library
+ * doesn't cover (smooth scrolling, transitions).
+ */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Shared section rhythm: consistent vertical spacing and max content width. */
+@utility container-page {
+  width: 100%;
+  margin-inline: auto;
+  max-width: 80rem;
+  padding-inline: 1.5rem;
+
+  @media (min-width: 1024px) {
+    padding-inline: 2.5rem;
+  }
+}
+
+/*
+ * Timeline entry start offsets.
+ *
+ * The journey reveal alternates left/right on desktop but rises straight from
+ * below on mobile, where horizontal travel reads as a swipe rather than a
+ * reveal. That choice is made in CSS rather than in JavaScript on purpose: a
+ * `matchMedia` read during render can only return the server value on the
+ * first client pass, so by the time the real breakpoint is known the
+ * animation's start position has already been captured and can't be corrected
+ * without a visible jump.
+ *
+ * Framer Motion reads these custom properties as its `x` and `y` start
+ * offsets, so one animated element yields both behaviours, correct at first
+ * paint. Zero here is `0px` rather than unset, since a var with no fallback
+ * resolves to nothing and the transform is then dropped entirely.
+ */
+:root {
+  --timeline-x: 0px;
+  --timeline-y: 30px;
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --timeline-y: 0px;
+  }
+
+  /* Even entries arrive from the left, odd entries from the right. */
+  .timeline-entry:nth-child(odd) {
+    --timeline-x: -40px;
+  }
+
+  .timeline-entry:nth-child(even) {
+    --timeline-x: 40px;
+  }
+}
+
+/*
+ * Stratum label language.
+ *
+ * `.lbl` is the inline label container and `.t` the span holding its text.
+ * The decoder in `src/lib/label-decoder.ts` measures `.t` and pins a width to
+ * it, then scrambles the characters — so `.t` must be `inline-block` with a
+ * reserved width, or the surrounding layout reflows on every frame of the
+ * animation.
+ *
+ * `.menu` is the chamfered glass pill in the navbar. The chamfer is a
+ * `clip-path` rather than a border radius so it can cut across a gradient edge
+ * — that gradient outline is the detail that makes it read as machined metal
+ * rather than flat translucent plastic.
+ */
+@layer components {
+  .lbl {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6em;
+  }
+
+  .lbl > .t {
+    display: inline-block;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    /* The decoder reserves the final width up front, so this box is what keeps
+       neighbouring links from shifting while characters scramble. */
+    min-width: 1ch;
+  }
+
+  .menu {
+    /*
+     * The tint is mixed from `currentColor` rather than pinned to the
+     * reference's cream, so the pill reads as a lit edge of whatever text
+     * colour it sits on — cream-tinted in dark, black-tinted in light —
+     * without a second set of tokens per theme.
+     */
+    --pill-bg: color-mix(in oklab, currentColor 7%, transparent);
+    --pill-edge: color-mix(in oklab, currentColor 22%, transparent);
+
+    /*
+     * The desktop bar carries its links inline, so the MENU pill is only
+     * meaningful once that set collapses — below the `md` breakpoint where
+     * `Navbar.tsx` hides the link list.
+     */
+    display: none;
+
+    align-items: center;
+    justify-content: center;
+    gap: 0.6em;
+
+    height: 2.5rem;
+    padding-inline: 1rem;
+
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    line-height: 1;
+    white-space: nowrap;
+
+    color: var(--color-foreground);
+    text-decoration: none;
+    cursor: pointer;
+
+    /*
+     * Two stacked gradients stand in for a border: the outer layer is the
+     * edge, exposed by `clip-path` cutting the chamfer across it.
+     */
+    background:
+      linear-gradient(var(--pill-bg), var(--pill-bg)) padding-box,
+      linear-gradient(var(--pill-edge), var(--pill-edge)) border-box;
+    border: 1px solid transparent;
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+    clip-path: polygon(
+      9px 0,
+      100% 0,
+      100% calc(100% - 9px),
+      calc(100% - 9px) 100%,
+      0 100%,
+      0 9px
+    );
+
+    transition:
+      background 0.34s ease,
+      transform 0.34s cubic-bezier(0.22, 0.61, 0.36, 1);
+  }
+
+  @media (max-width: 767px) {
+    .menu {
+      display: inline-flex;
+    }
+  }
+
+  /*
+   * Nav links.
+   *
+   * Sized to their own label and padded to a 44px-tall target, so the touch
+   * minimum is met without the bar growing a fixed height to accommodate it.
+   */
+  .lbl:where(a):not(.menu) {
+    padding-block: 0.75rem;
+    padding-inline: 0.5rem;
+
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--color-muted);
+    text-decoration: none;
+    white-space: nowrap;
+
+    transition: color 0.25s ease;
+  }
+
+  @media (hover: hover) {
+    .lbl:where(a):not(.menu):hover {
+      color: var(--color-foreground);
+    }
+  }
+
+  .menu .ico {
+    width: 0.625rem;
+    height: 0.625rem;
+    fill: currentColor;
+    flex-shrink: 0;
+  }
+
+  /*
+   * The lift is gated on the pointer actually being a hovering device. Without
+   * the gate, a tap on iOS Safari leaves `:hover` latched and the pill stays
+   * lit until the visitor taps elsewhere.
+   */
+  @media (hover: hover) {
+    .menu:hover {
+      --pill-bg: color-mix(in oklab, currentColor 14%, transparent);
+      transform: translateY(-1px);
+    }
+  }
+
+  .menu:active {
+    transform: translateY(0);
+  }
 }

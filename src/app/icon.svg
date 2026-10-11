@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="AA">
+  <!--
+    The site mark, matching the navbar's initials monogram in Navbar.tsx:
+    a rounded square in the foreground colour with the name's initials
+    knocked out in the background colour.
+
+    Favicons are rendered as an image, so the app's web fonts are not
+    available here — a generic monospace stack stands in for JetBrains Mono.
+    Both themes of the mark are the same two greys inverted, so a single
+    near-black tile stays legible against light and dark browser chrome.
+  -->
+  <rect width="64" height="64" rx="14" fill="#09090b" />
+  <text
+    x="32"
+    y="33"
+    fill="#fafafa"
+    font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace"
+    font-size="30"
+    font-weight="600"
+    letter-spacing="-1"
+    text-anchor="middle"
+    dominant-baseline="central"
+  >AA</text>
+</svg>
