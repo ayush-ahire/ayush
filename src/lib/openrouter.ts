@@ -15,9 +15,9 @@ const MODEL = "openrouter/free";
 
 const ENDPOINT = "https://openrouter.ai/api/v1/chat/completions";
 
-/** Sent as `HTTP-Referer` / `X-Title` to identify the app in OpenRouter's dashboard. */
+/** Sent as `HTTP-Referer` / `X-Title` to identify the app in OpenRouter's dashboard. Must be ASCII. */
 const APP_URL = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
-const APP_TITLE = "Ayush Ahire — Portfolio";
+const APP_TITLE = "Ayush Ahire - Portfolio";
 
 /** Model-level guard so a slow free tier fails fast instead of holding the request open. */
 const TIMEOUT_MS = 20_000;
@@ -49,9 +49,6 @@ export async function completeChat(
 ): Promise<string> {
   const apiKey = process.env.OPENROUTER_API_KEY;
 
-  // Debug logging - do not log the actual key
-  console.log(`[OpenRouter] API key present: ${!!apiKey}, length: ${apiKey?.length || 0}`);
-
   if (!apiKey) {
     throw new OpenRouterError("OPENROUTER_API_KEY is not configured");
   }
@@ -68,8 +65,8 @@ export async function completeChat(
       headers: {
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
-        "HTTP-Referer": APP_URL,
-        "X-Title": APP_TITLE,
+        "HTTP-Referer": APP_URL.replace(/[^\x00-\x7F]/g, ""),
+        "X-Title": APP_TITLE.replace(/[^\x00-\x7F]/g, ""),
       },
       body: JSON.stringify({
         model: MODEL,

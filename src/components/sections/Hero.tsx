@@ -19,10 +19,10 @@ export function Hero() {
     >
       <LazyHeroBackground />
 
-      <div className="container-page relative grid items-start gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)] lg:gap-16">
+      <div className="container-page relative grid items-start gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,27rem)] lg:gap-16">
         <HeroIntro />
 
-        <div className="lg:sticky lg:top-24">
+        <div className="w-full max-w-lg mx-auto lg:max-w-none lg:w-full lg:sticky lg:top-24">
           <Chatbot />
         </div>
       </div>

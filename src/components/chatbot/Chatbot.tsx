@@ -44,11 +44,14 @@ export function Chatbot() {
     const el = scrollRef.current;
     if (!el) return;
     const nearBottom =
-      el.scrollHeight - el.scrollTop - el.clientHeight < 120;
+      el.scrollHeight - el.scrollTop - el.clientHeight < 150;
     if (nearBottom) {
-      el.scrollTo({ top: el.scrollHeight, behavior: "auto" });
+      el.scrollTo({
+        top: el.scrollHeight,
+        behavior: reduceMotion ? "auto" : "smooth",
+      });
     }
-  }, [messages]);
+  }, [messages, reduceMotion]);
 
   const send = useCallback(async (raw: string) => {
     const question = raw.trim().slice(0, MAX_MESSAGE_LENGTH);
@@ -136,9 +139,9 @@ export function Chatbot() {
       initial={reduceMotion ? false : { opacity: 0, y: 24, scale: 0.98 }}
       animate={reduceMotion ? undefined : { opacity: 1, y: 0, scale: 1 }}
       transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1], delay: 0.2 }}
-      className="flex h-full min-h-112 flex-col overflow-hidden rounded-2xl border border-border-strong bg-surface"
+      className="flex h-[520px] sm:h-[580px] max-h-[calc(100dvh-7.5rem)] w-full flex-col overflow-hidden rounded-2xl border border-border-strong bg-surface shadow-xs"
     >
-      <header className="flex items-center gap-3 border-b border-border px-5 py-4">
+      <header className="flex shrink-0 items-center gap-3 border-b border-border px-5 py-4">
         <span
           aria-hidden="true"
           className="grid size-9 shrink-0 place-items-center rounded-lg bg-foreground text-background"
@@ -158,7 +161,7 @@ export function Chatbot() {
         role="log"
         aria-live="polite"
         aria-label="Conversation"
-        className="flex-1 space-y-3 overflow-y-auto p-5"
+        className="chat-scrollbar flex-1 min-h-0 space-y-3 overflow-y-auto p-5"
       >
         {messages.map((message) => (
           <ChatMessage key={message.id} message={message} />
@@ -173,12 +176,14 @@ export function Chatbot() {
         ) : null}
       </div>
 
-      <ChatInput
-        value={input}
-        onChange={setInput}
-        onSubmit={handleSubmit}
-        disabled={busy}
-      />
+      <div className="shrink-0">
+        <ChatInput
+          value={input}
+          onChange={setInput}
+          onSubmit={handleSubmit}
+          disabled={busy}
+        />
+      </div>
     </motion.div>
   );
 }

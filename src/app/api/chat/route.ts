@@ -90,6 +90,13 @@ export async function POST(request: Request) {
       console.error("OpenRouter request failed:", error.message, {
         status: error.status,
       });
+      return NextResponse.json(
+        {
+          error: GENERIC_ERROR,
+          ...(process.env.NODE_ENV !== "production" ? { detail: error.message } : {}),
+        },
+        { status: 502 },
+      );
     } else {
       console.error("Unexpected chat error:", error);
     }

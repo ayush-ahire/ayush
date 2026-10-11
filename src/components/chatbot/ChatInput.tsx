@@ -55,7 +55,7 @@ export function ChatInput({
   return (
     <form
       onSubmit={handleSubmit}
-      className="flex items-end gap-2 border-t border-border p-3"
+      className="flex shrink-0 items-end gap-2 border-t border-border p-3"
     >
       <label htmlFor="chat-input" className="sr-only">
         Ask a question about Ayush
